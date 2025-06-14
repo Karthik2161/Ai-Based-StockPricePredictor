@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Stock Price Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <h1>AI Stock Predictor</h1>
+                </div>
+                <p class="subtitle">Advanced Machine Learning Stock Price Prediction</p>
+            </div>
+            <div class="market-ticker">
+                <div class="ticker-item">
+                    <span class="ticker-symbol">MARKET</span>
+                    <span class="ticker-status">LIVE</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Section -->
+            <section class="input-section">
+                <div class="card input-card">
+                    <div class="card-header">
+                        <i class="fas fa-search"></i>
+                        <h2>Stock Analysis</h2>
+                    </div>
+                    <div class="input-form">
+                        <div class="form-group">
+                            <label for="stockSymbol">Stock Symbol</label>
+                            <input type="text" id="stockSymbol" placeholder="e.g., AAPL, GOOGL, TSLA" maxlength="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="predictionDays">Prediction Days</label>
+                            <input type="number" id="predictionDays" min="1" max="30" value="7">
+                        </div>
+                        <button id="predictBtn" class="predict-btn">
+                            <i class="fas fa-magic"></i>
+                            <span>Predict Prices</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading Animation -->
+            <div id="loadingAnimation" class="loading-container" style="display: none;">
+                <div class="loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <p class="loading-text">Analyzing market data with AI...</p>
+            </div>
+
+            <!-- Stock Info Section -->
+            <section id="stockInfoSection" class="stock-info-section" style="display: none;">
+                <div class="card info-card">
+                    <div class="card-header">
+                        <i class="fas fa-info-circle"></i>
+                        <h2 id="stockName">Stock Information</h2>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Current Price</span>
+                            <span class="info-value" id="currentPrice">$0.00</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Sector</span>
+                            <span class="info-value" id="sector">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Market Cap</span>
+                            <span class="info-value" id="marketCap">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">P/E Ratio</span>
+                            <span class="info-value" id="peRatio">-</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <!-- Chart Container -->
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-area"></i>
+                        <h2>Price Predictions</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Predictions Table -->
+                <div class="card predictions-card">
+                    <div class="card-header">
+                        <i class="fas fa-table"></i>
+                        <h2>Daily Predictions</h2>
+                    </div>
+                    <div class="table-container">
+                        <table id="predictionsTable">
+                            <thead>
+                                <tr>
+                                    <th>Day</th>
+                                    <th>Date</th>
+                                    <th>Predicted Price</th>
+                                    <th>Change</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Model Performance -->
+                <div class="card performance-card">
+                    <div class="card-header">
+                        <i class="fas fa-cogs"></i>
+                        <h2>Model Performance</h2>
+                    </div>
+                    <div class="performance-grid">
+                        <div class="performance-item">
+                            <div class="performance-label">Random Forest R²</div>
+                            <div class="performance-value" id="rfR2">0.00</div>
+                            <div class="performance-bar">
+                                <div class="performance-fill" id="rfR2Bar"></div>
+                            </div>
+                        </div>
+                        <div class="performance-item">
+                            <div class="performance-label">Linear Regression R²</div>
+                            <div class="performance-value" id="lrR2">0.00</div>
+                            <div class="performance-bar">
+                                <div class="performance-fill" id="lrR2Bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <div id="errorSection" class="error-section" style="display: none;">
+                <div class="error-card">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error</h3>
+                    <p id="errorMessage">Something went wrong. Please try again.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 AI Stock Predictor. Using advanced machine learning algorithms.</p>
+            <div class="footer-links">
+                <span><i class="fas fa-shield-alt"></i> Secure</span>
+                <span><i class="fas fa-rocket"></i> Fast</span>
+                <span><i class="fas fa-brain"></i> AI-Powered</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Particles Background -->
+    <div class="particles-bg">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <script>
+        let priceChart = null;
+
+        // Animation utilities
+        function showElement(element, animation = 'fadeInUp') {
+            element.style.display = 'block';
+            element.classList.add(animation);
+            setTimeout(() => {
+                element.classList.remove(animation);
+            }, 600);
+        }
+
+        function hideElement(element) {
+            element.style.display = 'none';
+        }
+
+        // Format number with commas
+        function formatNumber(num) {
+            if (typeof num !== 'number') return num;
+            return num.toLocaleString();
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            if (typeof amount !== 'number') return '$0.00';
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        // Get stock information
+        async function getStockInfo(symbol) {
+            try {
+                const response = await fetch(`/stock_info/${symbol}`);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching stock info:', error);
+                return null;
+            }
+        }
+
+        // Display stock information
+        function displayStockInfo(info) {
+            const section = document.getElementById('stockInfoSection');
+            
+            document.getElementById('stockName').textContent = info.name || 'Stock Information';
+            document.getElementById('currentPrice').textContent = formatCurrency(info.current_price);
+            document.getElementById('sector').textContent = info.sector || 'N/A';
+            document.getElementById('marketCap').textContent = info.market_cap ? formatNumber(info.market_cap) : 'N/A';
+            document.getElementById('peRatio').textContent = info.pe_ratio ? info.pe_ratio.toFixed(2) : 'N/A';
+            
+            showElement(section, 'slideInLeft');
+        }
+
+        // Create price chart
+        function createPriceChart(predictions, currentPrice) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+
+            const labels = ['Current', ...predictions.map(p => `Day ${p.day}`)];
+            const prices = [currentPrice, ...predictions.map(p => p.predicted_price)];
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Predicted Price',
+                        data: prices,
+                        borderColor: 'rgba(138, 43, 226, 1)',
+                        backgroundColor: 'rgba(138, 43, 226, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(255, 215, 0, 1)',
+                        pointBorderColor: 'rgba(138, 43, 226, 1)',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#ffffff',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create predictions table
+        function createPredictionsTable(predictions, currentPrice) {
+            const tbody = document.querySelector('#predictionsTable tbody');
+            tbody.innerHTML = '';
+
+            predictions.forEach((pred, index) => {
+                const row = tbody.insertRow();
+                const change = pred.predicted_price - currentPrice;
+                const changePercent = ((change / currentPrice) * 100).toFixed(2);
+                const changeClass = change >= 0 ? 'positive' : 'negative';
+                const changeIcon = change >= 0 ? '↗' : '↘';
+
+                row.innerHTML = `
+                    <td>Day ${pred.day}</td>
+                    <td>${pred.date}</td>
+                    <td>${formatCurrency(pred.predicted_price)}</td>
+                    <td class="${changeClass}">
+                        ${changeIcon} ${formatCurrency(Math.abs(change))} (${changePercent}%)
+                    </td>
+                `;
+                
+                // Add animation delay for each row
+                row.style.animationDelay = `${index * 0.1}s`;
+                row.classList.add('fadeInRight');
+            });
+        }
+
+        // Display model performance
+        function displayModelPerformance(performance) {
+            const rfR2 = performance.rf_r2 || 0;
+            const lrR2 = performance.lr_r2 || 0;
+
+            document.getElementById('rfR2').textContent = (rfR2 * 100).toFixed(1) + '%';
+            document.getElementById('lrR2').textContent = (lrR2 * 100).toFixed(1) + '%';
+
+            // Animate progress bars
+            setTimeout(() => {
+                document.getElementById('rfR2Bar').style.width = (rfR2 * 100) + '%';
+                document.getElementById('lrR2Bar').style.width = (lrR2 * 100) + '%';
+            }, 500);
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorSection = document.getElementById('errorSection');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            errorMessage.textContent = message;
+            showElement(errorSection, 'shake');
+            
+            setTimeout(() => {
+                hideElement(errorSection);
+            }, 5000);
+        }
+
+        // Main prediction function
+        async function predictStockPrices() {
+            const stockSymbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+            const predictionDays = parseInt(document.getElementById('predictionDays').value);
+            
+            if (!stockSymbol) {
+                showError('Please enter a stock symbol');
+                return;
+            }
+
+            // Hide previous results
+            hideElement(document.getElementById('resultsSection'));
+            hideElement(document.getElementById('stockInfoSection'));
+            hideElement(document.getElementById('errorSection'));
+            
+            // Show loading animation
+            showElement(document.getElementById('loadingAnimation'));
+
+            try {
+                // Get stock info first
+                const stockInfo = await getStockInfo(stockSymbol);
+                if (stockInfo && !stockInfo.error) {
+                    displayStockInfo(stockInfo);
+                }
+
+                // Make prediction request
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: stockSymbol,
+                        days: predictionDays
+                    })
+                });
+
+                const data = await response.json();
+
+                // Hide loading animation
+                hideElement(document.getElementById('loadingAnimation'));
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                // Display results
+                createPriceChart(data.predictions, data.current_price);
+                createPredictionsTable(data.predictions, data.current_price);
+                displayModelPerformance(data.model_performance);
+                
+                showElement(document.getElementById('resultsSection'), 'fadeInUp');
+
+            } catch (error) {
+                hideElement(document.getElementById('loadingAnimation'));
+                showError('Network error. Please check your connection and try again.');
+                console.error('Error:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('predictBtn').addEventListener('click', predictStockPrices);
+
+        document.getElementById('stockSymbol').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                predictStockPrices();
+            }
+        });
+
+        // Initialize particles animation
+        function initParticles() {
+            const particles = document.querySelectorAll('.particle');
+            particles.forEach((particle, index) => {
+                particle.style.animationDelay = `${index * 0.5}s`;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initParticles();
+            
+            // Add typing effect to subtitle
+            const subtitle = document.querySelector('.subtitle');
+            const text = subtitle.textContent;
+            subtitle.textContent = '';
+            
+            let i = 0;
+            function typeWriter() {
+                if (i < text.length) {
+                    subtitle.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 100);
+                }
+            }
+            
+            setTimeout(typeWriter, 1000);
+        });
+    </script>
+</body>
+</html>
